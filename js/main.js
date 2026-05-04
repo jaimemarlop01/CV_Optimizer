@@ -27,9 +27,7 @@ const JAIME_DATA = {
   ]
 };
 
-const API_URL = window.location.hostname.includes('github.io')
-  ? 'https://cv-optimizer-jaime.vercel.app/api/generate'
-  : 'api.php';
+const GROQ_API_KEY = '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';
 
 let currentMode = 'url';
 let cvTextContent = '';
@@ -103,13 +101,20 @@ Responde SOLO con JSON válido, sin markdown, sin backticks, sin explicaciones f
     : `Analiza esta oferta de trabajo y genera el CV adaptado:\n\n${jobInput}`;
 
   try {
-    const response = await fetch(API_URL, {
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + GROQ_API_KEY
+      },
       body: JSON.stringify({
-        system: systemPrompt,
-        messages: [{ role: "user", content: userMessage }],
-        max_tokens: 1500
+        model: "llama-3.3-70b-versatile",
+        max_tokens: 1500,
+        temperature: 0.3,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user",   content: userMessage }
+        ]
       })
     });
 
@@ -119,7 +124,7 @@ Responde SOLO con JSON válido, sin markdown, sin backticks, sin explicaciones f
     }
 
     const data = await response.json();
-    let rawText = data.content?.[0]?.text || '';
+    let rawText = data.choices?.[0]?.message?.content || '';
     rawText = rawText.replace(/```json|```/g, '').trim();
 
     let result;
