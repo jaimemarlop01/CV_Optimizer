@@ -27,6 +27,10 @@ const JAIME_DATA = {
   ]
 };
 
+const API_URL = window.location.hostname.includes('github.io')
+  ? 'https://cv-optimizer-jaime.vercel.app/api/generate'
+  : 'api.php';
+
 let currentMode = 'url';
 let cvTextContent = '';
 let lastCVData = null;
@@ -99,23 +103,23 @@ Responde SOLO con JSON válido, sin markdown, sin backticks, sin explicaciones f
     : `Analiza esta oferta de trabajo y genera el CV adaptado:\n\n${jobInput}`;
 
   try {
-    const response = await fetch("api.php", {
+    const response = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        max_tokens: 1500,
         system: systemPrompt,
-        messages: [{ role: "user", content: userMessage }]
+        messages: [{ role: "user", content: userMessage }],
+        max_tokens: 1500
       })
     });
 
     if (!response.ok) {
       const errData = await response.json().catch(() => ({}));
-      throw new Error(errData.error || `Error de API: ${response.status}`);
+      throw new Error(errData.error?.message || `Error de API: ${response.status}`);
     }
 
     const data = await response.json();
-    let rawText = data.content.map(b => b.text || '').join('');
+    let rawText = data.content?.[0]?.text || '';
     rawText = rawText.replace(/```json|```/g, '').trim();
 
     let result;
