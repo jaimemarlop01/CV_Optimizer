@@ -84,8 +84,8 @@ Responde SOLO con JSON válido, sin markdown, sin backticks, sin explicaciones f
   "matchingSkills": número de skills de Jaime que coinciden con los requisitos,
   "keywordsIntegrated": número de keywords de la oferta que se han integrado en el CV,
   "adaptedBio": "párrafo de perfil profesional adaptado específicamente para esta oferta (3-4 frases)",
-  "highlightedSkills": ["lista de skills de Jaime más relevantes para esta oferta, en orden de relevancia"],
-  "keySkillsFromOffer": ["skills que pide la oferta y Jaime tiene"],
+  "highlightedSkills": ["skills de Jaime ordenadas por relevancia para esta oferta — usa EXACTAMENTE los mismos nombres que aparecen en su lista de skills: HTML, CSS, JavaScript, PHP, Java, SQL, C#, .NET, Front End, Back End, Multiplataforma, Git, REST APIs, BBDD Relacionales"],
+  "keySkillsFromOffer": ["subset de highlightedSkills que la oferta requiere explícitamente — usa EXACTAMENTE los mismos nombres de la lista anterior, sin parafrasear"],
   "adaptedBullets": ["bullet 1 reformulado", "bullet 2 reformulado", "bullet 3 reformulado"],
   "jobTitle": "título del puesto detectado en la oferta",
   "company": "nombre de la empresa si aparece, si no 'Empresa Tecnológica'",
@@ -151,14 +151,11 @@ function renderCV(data) {
   document.getElementById('score-keywords').textContent = integratedKeywords.length || data.keywordsIntegrated || '—';
   document.getElementById('keywords-detail').textContent = integratedKeywords.join(' · ');
 
-  // Destacar skills que coinciden con la oferta — coincidencia parcial para mayor robustez
-  const keySkillsSet = matchingSkills.map(s => s.toLowerCase());
-  const skillMatches = (skill) => keySkillsSet.some(ks =>
-    ks.includes(skill.toLowerCase()) || skill.toLowerCase().includes(ks)
-  );
+  // Destacar skills que coinciden con la oferta
+  const keySkillsSet = new Set(matchingSkills.map(s => s.toLowerCase()));
 
   const skillTags = (data.highlightedSkills || JAIME_DATA.skills).map(skill => {
-    const isHighlight = skillMatches(skill);
+    const isHighlight = keySkillsSet.has(skill.toLowerCase());
     return `<span class="cv-skill-tag ${isHighlight ? 'highlight' : ''}">${skill}</span>`;
   }).join('');
 
@@ -193,7 +190,7 @@ function renderCV(data) {
 
     <div class="cv-section-title">Habilidades técnicas</div>
     <div class="cv-skill-grid">${skillTags}</div>
-    ${keySkillsSet.length > 0 ? `<div class="cv-skills-note" style="margin-top:10px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);">↳ Skills destacadas en naranja coinciden con los requisitos de la oferta</div>` : ''}
+    ${keySkillsSet.size > 0 ? `<div class="cv-skills-note" style="margin-top:10px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);">↳ Skills destacadas en naranja coinciden con los requisitos de la oferta</div>` : ''}
 
     <div class="cv-section-title">Experiencia profesional</div>
     <div class="cv-exp-role">Consultor Junior</div>
@@ -298,33 +295,25 @@ async function printCV() {
 
   /* ── Cabecera ── */
   .header {
-    position: relative;
     background: #13151a;
     text-align: center;
-    padding: 32px 40px 24px;
-    overflow: hidden;
+    padding: 28px 40px 22px;
+    border-top: 4px solid #f5a623;
   }
-  .deco {
-    position: absolute;
-    width: 110px; height: 110px;
-    background: #f5a623;
-    border-radius: 18px;
+  .photo-wrap {
+    display: inline-block;
+    padding: 3px;
+    background: linear-gradient(135deg, #f5a623, #e8522a);
+    border-radius: 14px;
+    margin-bottom: 14px;
   }
-  .deco-tl { top: -44px; left: -44px; }
-  .deco-tr { top: -44px; right: -44px; }
-  .deco-bl { bottom: -52px; left: -52px; }
-  .deco-br { bottom: -52px; right: -52px; }
-
   .photo {
-    width: 112px; height: 112px;
-    border-radius: 50%;
+    width: 106px; height: 106px;
+    border-radius: 11px;
     object-fit: cover;
     object-position: top center;
-    border: 3px solid #f5a623;
     display: block;
-    margin: 0 auto 14px;
-    position: relative;
-    z-index: 1;
+    background: #0b0c0f;
   }
   .name {
     font-family: 'DM Serif Display', serif;
@@ -444,14 +433,10 @@ async function printCV() {
 <body>
 
 <div class="header">
-  <div class="deco deco-tl"></div>
-  <div class="deco deco-tr"></div>
-  ${photoTag}
+  ${photoBase64 ? `<div class="photo-wrap">${photoTag}</div>` : ''}
   <div class="name">Jaime Martínez López</div>
   <div class="role-line">${role}</div>
   <p class="bio">${bio}</p>
-  <div class="deco deco-bl"></div>
-  <div class="deco deco-br"></div>
 </div>
 
 <div class="body">
