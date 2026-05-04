@@ -23,12 +23,13 @@ const JAIME_DATA = {
   ],
   languages: [
     { lang: "Español", level: "Nativo" },
-    { lang: "Inglés", level: "Profesional (B2)" }
+    { lang: "Inglés", level: "Profesional" }
   ]
 };
 
 let currentMode = 'url';
 let cvTextContent = '';
+let lastCVData = null;
 
 function switchTab(mode) {
   currentMode = mode;
@@ -89,7 +90,8 @@ Responde SOLO con JSON válido, sin markdown, sin backticks, sin explicaciones f
   "jobTitle": "título del puesto detectado en la oferta",
   "company": "nombre de la empresa si aparece, si no 'Empresa Tecnológica'",
   "tip": "consejo específico de 2-3 frases sobre qué podría añadir o mejorar Jaime para esta oferta, y qué gaps hay entre su perfil y los requisitos",
-  "adaptedRole": "título de puesto más adecuado para presentarse a esta oferta específica"
+  "adaptedRole": "título de puesto más adecuado para presentarse a esta oferta específica",
+  "integratedKeywords": ["lista de keywords concretas de la oferta que se han integrado en el CV adaptado"]
 }`;
 
   const userMessage = currentMode === 'url'
@@ -137,14 +139,26 @@ Responde SOLO con JSON válido, sin markdown, sin backticks, sin explicaciones f
 }
 
 function renderCV(data) {
-  document.getElementById('score-match').textContent = (data.matchScore || 0) + '%';
-  document.getElementById('score-skills').textContent = data.matchingSkills || '—';
-  document.getElementById('score-keywords').textContent = data.keywordsIntegrated || '—';
+  lastCVData = data;
 
-  const keySkillsSet = new Set((data.keySkillsFromOffer || []).map(s => s.toLowerCase()));
+  document.getElementById('score-match').textContent = (data.matchScore || 0) + '%';
+
+  const matchingSkills = data.keySkillsFromOffer || [];
+  document.getElementById('score-skills').textContent = matchingSkills.length || data.matchingSkills || '—';
+  document.getElementById('skills-detail').textContent = matchingSkills.join(' · ');
+
+  const integratedKeywords = data.integratedKeywords || [];
+  document.getElementById('score-keywords').textContent = integratedKeywords.length || data.keywordsIntegrated || '—';
+  document.getElementById('keywords-detail').textContent = integratedKeywords.join(' · ');
+
+  // Destacar skills que coinciden con la oferta — coincidencia parcial para mayor robustez
+  const keySkillsSet = matchingSkills.map(s => s.toLowerCase());
+  const skillMatches = (skill) => keySkillsSet.some(ks =>
+    ks.includes(skill.toLowerCase()) || skill.toLowerCase().includes(ks)
+  );
 
   const skillTags = (data.highlightedSkills || JAIME_DATA.skills).map(skill => {
-    const isHighlight = keySkillsSet.has(skill.toLowerCase());
+    const isHighlight = skillMatches(skill);
     return `<span class="cv-skill-tag ${isHighlight ? 'highlight' : ''}">${skill}</span>`;
   }).join('');
 
@@ -179,7 +193,7 @@ function renderCV(data) {
 
     <div class="cv-section-title">Habilidades técnicas</div>
     <div class="cv-skill-grid">${skillTags}</div>
-    ${keySkillsSet.size > 0 ? `<div class="cv-skills-note" style="margin-top:10px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);">↳ Skills destacadas en naranja coinciden con los requisitos de la oferta</div>` : ''}
+    ${keySkillsSet.length > 0 ? `<div class="cv-skills-note" style="margin-top:10px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);">↳ Skills destacadas en naranja coinciden con los requisitos de la oferta</div>` : ''}
 
     <div class="cv-section-title">Experiencia profesional</div>
     <div class="cv-exp-role">Consultor Junior</div>
@@ -219,7 +233,14 @@ function copyCV() {
 function printCV() {
   const clone = document.getElementById('cv-output').cloneNode(true);
 
-  clone.querySelectorAll('.cv-skill-tag.highlight').forEach(el => el.classList.remove('highlight'));
+  // PDF: solo las skills relevantes para el puesto, sin highlights
+  const pdfSkills = (lastCVData && lastCVData.keySkillsFromOffer && lastCVData.keySkillsFromOffer.length > 0)
+    ? lastCVData.keySkillsFromOffer
+    : (lastCVData && lastCVData.highlightedSkills ? lastCVData.highlightedSkills : JAIME_DATA.skills);
+
+  clone.querySelectorAll('.cv-skill-grid').forEach(grid => {
+    grid.innerHTML = pdfSkills.map(s => `<span class="cv-skill-tag">${s}</span>`).join('');
+  });
 
   clone.querySelectorAll('.cv-section-title').forEach(el => {
     if (el.textContent.trim().toLowerCase() === 'idiomas') el.remove();
