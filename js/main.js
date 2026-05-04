@@ -230,10 +230,25 @@ function copyCV() {
   });
 }
 
-function printCV() {
+async function imgToBase64(url) {
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) return null;
+    const blob = await resp.blob();
+    return await new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
+async function printCV() {
   const clone = document.getElementById('cv-output').cloneNode(true);
 
-  // PDF: solo las skills relevantes para el puesto, sin highlights
+  // Solo las skills relevantes para el puesto, sin highlights
   const pdfSkills = (lastCVData && lastCVData.keySkillsFromOffer && lastCVData.keySkillsFromOffer.length > 0)
     ? lastCVData.keySkillsFromOffer
     : (lastCVData && lastCVData.highlightedSkills ? lastCVData.highlightedSkills : JAIME_DATA.skills);
@@ -247,6 +262,12 @@ function printCV() {
   });
 
   clone.querySelectorAll('.cv-skills-note').forEach(el => el.remove());
+
+  // Convierte la foto a base64 para que funcione en la ventana de impresión
+  const photoBase64 = await imgToBase64('img/photo.png');
+  const photoHtml = photoBase64
+    ? `<img src="${photoBase64}" class="cv-photo" alt="Foto">`
+    : '';
 
   const win = window.open('', '_blank');
   win.document.write(`<!DOCTYPE html>
@@ -268,6 +289,23 @@ function printCV() {
     line-height: 1.65;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+  }
+  .cv-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 24px;
+    margin-bottom: 4px;
+  }
+  .cv-header-text { flex: 1; }
+  .cv-photo {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    object-position: top;
+    border-radius: 2px;
+    border: 2px solid #1e2129;
+    flex-shrink: 0;
   }
   .cv-name {
     font-family: 'DM Serif Display', serif;
@@ -376,7 +414,17 @@ function printCV() {
   [style*="color:#9a9aa8"] { color: #9a9aa8 !important; font-size: 12.5px; font-family: 'DM Mono', monospace; }
 </style>
 </head>
-<body>${clone.innerHTML}</body>
+<body>
+  <div class="cv-header">
+    <div class="cv-header-text">${clone.querySelector('.cv-name').outerHTML}${clone.querySelector('.cv-role-line').outerHTML}${clone.querySelector('.cv-contact').outerHTML}</div>
+    ${photoHtml}
+  </div>
+  ${Array.from(clone.children).filter(el =>
+    !el.classList.contains('cv-name') &&
+    !el.classList.contains('cv-role-line') &&
+    !el.classList.contains('cv-contact')
+  ).map(el => el.outerHTML).join('')}
+</body>
 </html>`);
   win.document.close();
   win.focus();
