@@ -246,27 +246,34 @@ async function imgToBase64(url) {
 }
 
 async function printCV() {
-  const clone = document.getElementById('cv-output').cloneNode(true);
-
-  // Solo las skills relevantes para el puesto, sin highlights
-  const pdfSkills = (lastCVData && lastCVData.keySkillsFromOffer && lastCVData.keySkillsFromOffer.length > 0)
-    ? lastCVData.keySkillsFromOffer
-    : (lastCVData && lastCVData.highlightedSkills ? lastCVData.highlightedSkills : JAIME_DATA.skills);
-
-  clone.querySelectorAll('.cv-skill-grid').forEach(grid => {
-    grid.innerHTML = pdfSkills.map(s => `<span class="cv-skill-tag">${s}</span>`).join('');
-  });
-
-  clone.querySelectorAll('.cv-section-title').forEach(el => {
-    if (el.textContent.trim().toLowerCase() === 'idiomas') el.remove();
-  });
-
-  clone.querySelectorAll('.cv-skills-note').forEach(el => el.remove());
-
-  // Convierte la foto a base64 para que funcione en la ventana de impresión
   const photoBase64 = await imgToBase64('img/photo.png');
-  const photoHtml = photoBase64
-    ? `<img src="${photoBase64}" class="cv-photo" alt="Foto">`
+  const data = lastCVData || {};
+
+  const role    = data.adaptedRole  || JAIME_DATA.role;
+  const bio     = data.adaptedBio   || JAIME_DATA.bio;
+  const bullets = data.adaptedBullets || JAIME_DATA.experience[0].bullets;
+  const skills  = (data.keySkillsFromOffer && data.keySkillsFromOffer.length > 0)
+    ? data.keySkillsFromOffer
+    : (data.highlightedSkills || JAIME_DATA.skills);
+
+  const skillsHtml  = skills.map(s =>
+    `<div class="item"><span class="bullet">•</span>${s}</div>`).join('');
+
+  const langsHtml   = JAIME_DATA.languages.map(l =>
+    `<div class="item"><span class="bullet">•</span>${l.lang} — ${l.level}</div>`).join('');
+
+  const bulletsHtml = bullets.map(b =>
+    `<div class="item"><span class="bullet">•</span>${b}</div>`).join('');
+
+  const eduHtml = JAIME_DATA.education.map(e => `
+    <div class="edu-block">
+      <div class="edu-title">${e.title}</div>
+      <div class="edu-school">${e.school}</div>
+      <div class="edu-year">${e.year}</div>
+    </div>`).join('');
+
+  const photoTag = photoBase64
+    ? `<img class="photo" src="${photoBase64}" alt="Foto">`
     : '';
 
   const win = window.open('', '_blank');
@@ -278,152 +285,207 @@ async function printCV() {
 <title>CV — Jaime Martínez López</title>
 <style>
   @page { margin: 0; size: A4; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    color: #e8e6e0;
     background: #0b0c0f;
-    max-width: 740px;
-    margin: 0 auto;
-    padding: 18mm 20mm;
-    line-height: 1.65;
+    color: #e8e6e0;
+    width: 210mm;
+    min-height: 297mm;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
-  .cv-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 24px;
-    margin-bottom: 4px;
+
+  /* ── Cabecera ── */
+  .header {
+    position: relative;
+    background: #13151a;
+    text-align: center;
+    padding: 32px 40px 24px;
+    overflow: hidden;
   }
-  .cv-header-text { flex: 1; }
-  .cv-photo {
-    width: 100px;
-    height: 100px;
+  .deco {
+    position: absolute;
+    width: 110px; height: 110px;
+    background: #f5a623;
+    border-radius: 18px;
+  }
+  .deco-tl { top: -44px; left: -44px; }
+  .deco-tr { top: -44px; right: -44px; }
+  .deco-bl { bottom: -52px; left: -52px; }
+  .deco-br { bottom: -52px; right: -52px; }
+
+  .photo {
+    width: 112px; height: 112px;
+    border-radius: 50%;
     object-fit: cover;
-    object-position: top;
-    border-radius: 2px;
-    border: 2px solid #1e2129;
-    flex-shrink: 0;
+    object-position: top center;
+    border: 3px solid #f5a623;
+    display: block;
+    margin: 0 auto 14px;
+    position: relative;
+    z-index: 1;
   }
-  .cv-name {
+  .name {
     font-family: 'DM Serif Display', serif;
-    font-size: 38px;
+    font-size: 26px;
     font-weight: 400;
+    letter-spacing: .06em;
+    text-transform: uppercase;
     color: #e8e6e0;
-    line-height: 1.05;
-    margin-bottom: 5px;
+    margin-bottom: 4px;
+    position: relative; z-index: 1;
   }
-  .cv-name em { font-style: italic; color: #e8522a; }
-  .cv-role-line {
+  .role-line {
     font-family: 'DM Mono', monospace;
-    font-size: 11px;
-    color: #6b6f7a;
-    letter-spacing: .1em;
-    margin-bottom: 14px;
-  }
-  .cv-contact {
-    display: flex;
-    gap: 18px;
     font-size: 11.5px;
     color: #9a9aa8;
-    margin-bottom: 22px;
-    flex-wrap: wrap;
+    letter-spacing: .08em;
+    margin-bottom: 14px;
+    position: relative; z-index: 1;
   }
-  .cv-contact div { display: flex; align-items: center; gap: 5px; }
-  .cv-section-title {
+  .bio {
+    font-size: 12px;
+    color: #9a9aa8;
+    line-height: 1.65;
+    max-width: 500px;
+    margin: 0 auto;
+    position: relative; z-index: 1;
+  }
+
+  /* ── Cuerpo dos columnas ── */
+  .body { display: flex; min-height: calc(297mm - 230px); }
+
+  .col-left {
+    width: 38%;
+    background: #13151a;
+    padding: 24px 22px;
+    border-right: 1px solid #1e2129;
+  }
+  .col-right {
+    width: 62%;
+    background: #0b0c0f;
+    padding: 24px 26px;
+  }
+
+  /* ── Secciones ── */
+  .section { margin-bottom: 22px; }
+  .sec-title {
     font-family: 'DM Mono', monospace;
-    font-size: 9.5px;
-    letter-spacing: .14em;
+    font-size: 9px;
+    letter-spacing: .2em;
     text-transform: uppercase;
     color: #f5a623;
     border-bottom: 1px solid #1e2129;
-    padding-bottom: 4px;
-    margin: 20px 0 10px;
+    padding-bottom: 5px;
+    margin-bottom: 11px;
   }
-  .cv-section-title::after { display: none; }
-  .cv-summary {
-    font-size: 13px;
+
+  /* ── Items lista ── */
+  .item {
+    font-size: 12px;
     color: #c8c6c0;
-    line-height: 1.7;
-    border-left: 2px solid #f5a623;
-    padding-left: 14px;
+    line-height: 1.55;
+    margin-bottom: 5px;
+    display: flex;
+    gap: 7px;
+    align-items: flex-start;
   }
-  .cv-skill-grid { display: flex; flex-wrap: wrap; gap: 5px; }
-  .cv-skill-tag {
+  .bullet { color: #f5a623; flex-shrink: 0; margin-top: 1px; }
+
+  /* ── Contacto ── */
+  .contact-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-family: 'DM Mono', monospace;
     font-size: 10.5px;
-    padding: 2px 9px;
-    border: 1px solid #1e2129;
     color: #9a9aa8;
-    background: #13151a;
+    margin-bottom: 6px;
   }
-  .cv-exp-role {
-    font-family: 'DM Serif Display', serif;
-    font-size: 17px;
-    font-weight: 400;
-    color: #e8e6e0;
-    margin-top: 10px;
-    margin-bottom: 2px;
-  }
-  .cv-exp-company {
-    font-family: 'DM Mono', monospace;
-    font-size: 11px;
-    color: #e8522a;
-    margin-bottom: 10px;
-  }
-  .cv-bullets { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
-  .cv-bullets li {
-    font-size: 12.5px;
-    color: #9a9aa8;
-    padding-left: 16px;
-    position: relative;
-  }
-  .cv-bullets li::before {
-    content: '→';
-    position: absolute;
-    left: 0;
-    color: #f5a623;
-    font-size: 11px;
-  }
-  .cv-edu-row {
-    display: grid;
-    grid-template-columns: 110px 1fr;
-    gap: 16px;
-    padding: 10px 0;
-    border-bottom: 1px solid #1e2129;
-  }
-  .cv-edu-year {
-    font-family: 'DM Mono', monospace;
-    font-size: 10.5px;
-    color: #6b6f7a;
-  }
-  .cv-edu-title {
+  .contact-icon { color: #f5a623; font-size: 13px; }
+
+  /* ── Experiencia ── */
+  .exp-role {
     font-family: 'DM Serif Display', serif;
     font-size: 15px;
-    font-weight: 400;
     color: #e8e6e0;
     margin-bottom: 2px;
   }
-  .cv-edu-school {
+  .exp-period {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: #e8522a;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+
+  /* ── Formación ── */
+  .edu-block { margin-bottom: 13px; }
+  .edu-title {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #e8e6e0;
+    margin-bottom: 1px;
+  }
+  .edu-school {
     font-family: 'DM Mono', monospace;
     font-size: 10.5px;
-    color: #f5a623;
+    color: #9a9aa8;
   }
-  [style*="color:#9a9aa8"] { color: #9a9aa8 !important; font-size: 12.5px; font-family: 'DM Mono', monospace; }
+  .edu-year {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: #6b6f7a;
+    margin-top: 1px;
+  }
 </style>
 </head>
 <body>
-  <div class="cv-header">
-    <div class="cv-header-text">${clone.querySelector('.cv-name').outerHTML}${clone.querySelector('.cv-role-line').outerHTML}${clone.querySelector('.cv-contact').outerHTML}</div>
-    ${photoHtml}
+
+<div class="header">
+  <div class="deco deco-tl"></div>
+  <div class="deco deco-tr"></div>
+  ${photoTag}
+  <div class="name">Jaime Martínez López</div>
+  <div class="role-line">${role}</div>
+  <p class="bio">${bio}</p>
+  <div class="deco deco-bl"></div>
+  <div class="deco deco-br"></div>
+</div>
+
+<div class="body">
+  <div class="col-left">
+    <div class="section">
+      <div class="sec-title">Habilidades relevantes</div>
+      ${skillsHtml}
+    </div>
+    <div class="section">
+      <div class="sec-title">Lenguaje</div>
+      ${langsHtml}
+    </div>
+    <div class="section">
+      <div class="sec-title">Contacto</div>
+      <div class="contact-item"><span class="contact-icon">✆</span>${JAIME_DATA.phone}</div>
+      <div class="contact-item"><span class="contact-icon">✉</span>${JAIME_DATA.email}</div>
+      <div class="contact-item"><span class="contact-icon">◎</span>${JAIME_DATA.location}</div>
+    </div>
   </div>
-  ${Array.from(clone.children).filter(el =>
-    !el.classList.contains('cv-name') &&
-    !el.classList.contains('cv-role-line') &&
-    !el.classList.contains('cv-contact')
-  ).map(el => el.outerHTML).join('')}
+
+  <div class="col-right">
+    <div class="section">
+      <div class="sec-title">Experiencia de trabajo</div>
+      <div class="exp-role">${JAIME_DATA.experience[0].role}</div>
+      <div class="exp-period">${JAIME_DATA.experience[0].period} (${JAIME_DATA.experience[0].duration})</div>
+      ${bulletsHtml}
+    </div>
+    <div class="section">
+      <div class="sec-title">Formación</div>
+      ${eduHtml}
+    </div>
+  </div>
+</div>
+
 </body>
 </html>`);
   win.document.close();
