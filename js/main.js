@@ -99,7 +99,7 @@ Responde SOLO con JSON válido, sin markdown, sin backticks, sin explicaciones f
     : `Analiza esta oferta de trabajo y genera el CV adaptado:\n\n${jobInput}`;
 
   try {
-    const response = await fetch("php/proxy.php", {
+    const response = await fetch("api.php", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
