@@ -12,9 +12,9 @@ const JAIME_DATA = {
     period: "Enero 2023 — Actualidad",
     duration: "3 años, 4 meses",
     bullets: [
-      "Mantenimiento y desarrollo de proyectos de aplicaciones web y de escritorio, incorporando mejoras continuas en las soluciones existentes.",
-      "Provisión de soporte técnico a los usuarios, gestionando y resolviendo incidencias relacionadas con los distintos proyectos.",
-      "Elaboración de documentación técnica alineada con los desarrollos realizados, garantizando su correcta actualización y accesibilidad."
+      "Mantengo y desarrollo proyectos de aplicaciones web y de escritorio, incorporando mejoras continuas en las soluciones existentes.",
+      "Proporciono soporte técnico a los usuarios, gestionando y resolviendo incidencias de forma eficiente.",
+      "Elaboro documentación técnica actualizada, garantizando su accesibilidad y alineación con los desarrollos realizados."
     ]
   }],
   education: [
@@ -28,6 +28,37 @@ const JAIME_DATA = {
 };
 
 const GROQ_API_KEY = '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';
+
+const LABELS = {
+  es: {
+    profile: "Perfil profesional", skills: "Habilidades técnicas",
+    skillsNote: "↳ Skills destacadas en naranja coinciden con los requisitos de la oferta",
+    experience: "Experiencia profesional", education: "Formación académica", languages: "Idiomas",
+    expRole: "Consultor Junior",
+    expCompany: "Desarrollo Web & Multiplataforma · Enero 2023 — Actualidad · 3 años, 4 meses",
+    edu: [
+      { year: "2021 — 2022", title: "Grado en Desarrollo de Aplicaciones Web", school: "IMF Smart Education" },
+      { year: "2019 — 2020", title: "Grado en Desarrollo de Aplicaciones Multiplataforma", school: "IMF Smart Education" }
+    ],
+    langItems: [{ lang: "Español", level: "Nativo" }, { lang: "Inglés", level: "Profesional" }],
+    skillsSec: "Habilidades relevantes", langSec: "Idioma", contactSec: "Contacto",
+    expSec: "Experiencia de trabajo", eduSec: "Formación"
+  },
+  en: {
+    profile: "Professional Profile", skills: "Technical Skills",
+    skillsNote: "↳ Orange-highlighted skills match the job requirements",
+    experience: "Work Experience", education: "Education", languages: "Languages",
+    expRole: "Junior Consultant",
+    expCompany: "Web & Cross-platform Development · January 2023 — Present · 3 years, 4 months",
+    edu: [
+      { year: "2021 — 2022", title: "Degree in Web Application Development", school: "IMF Smart Education" },
+      { year: "2019 — 2020", title: "Degree in Cross-platform Application Development", school: "IMF Smart Education" }
+    ],
+    langItems: [{ lang: "Spanish", level: "Native" }, { lang: "English", level: "Professional" }],
+    skillsSec: "Relevant Skills", langSec: "Languages", contactSec: "Contact",
+    expSec: "Work Experience", eduSec: "Education"
+  }
+};
 
 let currentMode = 'url';
 let cvTextContent = '';
@@ -65,35 +96,37 @@ async function generateCV() {
   btnText.textContent = 'Analizando oferta...';
   document.getElementById('output-wrap').style.display = 'none';
 
-  const systemPrompt = `Eres un experto en recursos humanos y optimización de CVs para el mercado español de tecnología.
-Tu tarea es analizar una oferta de trabajo y generar un CV personalizado para Jaime Martínez López, adaptando su perfil real a los requisitos específicos de la oferta.
+  const systemPrompt = `You are an expert HR consultant and CV optimizer. Your task is to analyze a job offer and generate a personalized CV for Jaime Martínez López, adapting his real profile to the specific requirements of the offer.
 
-DATOS REALES DE JAIME:
+JAIME'S REAL DATA:
 ${JSON.stringify(JAIME_DATA, null, 2)}
 
-INSTRUCCIONES:
-1. Analiza la oferta para identificar: tecnologías requeridas, responsabilidades clave, tipo de empresa, nivel de seniority, keywords importantes.
-2. Adapta el CV de Jaime destacando las habilidades y experiencias más relevantes para esa oferta específica.
-3. Reescribe el perfil/bio para conectar directamente con lo que busca la empresa.
-4. Reordena o resalta las skills según la relevancia para la oferta.
-5. Reformula los bullets de experiencia usando keywords de la oferta cuando sea honestamente aplicable.
-6. NO inventes experiencias o habilidades que Jaime no tiene. Solo adapta la presentación de lo que ya tiene.
-7. Si la oferta pide algo que Jaime no tiene (ej: React, Node.js), no lo incluyas en el CV pero sí menciónalo en el consejo.
+INSTRUCTIONS:
+1. Detect the language of the job offer (Spanish or English).
+2. Generate ALL text fields in that same language.
+3. Identify from the offer: required technologies, key responsibilities, company type, seniority level, important keywords.
+4. Adapt Jaime's CV highlighting the most relevant skills and experiences for that specific offer.
+5. Rewrite the profile/bio to directly connect with what the company is looking for.
+6. Reorder or highlight skills by relevance to the offer.
+7. Rewrite experience bullets using keywords from the offer where honestly applicable. Write bullets in present tense (first person: "I develop...", "Desarrollo...").
+8. Do NOT invent experiences or skills Jaime does not have. Only adapt the presentation of what he already has.
+9. If the offer asks for something Jaime does not have (e.g. React, Node.js), do not include it in the CV but mention it in the tip.
 
-Responde SOLO con JSON válido, sin markdown, sin backticks, sin explicaciones fuera del JSON:
+Respond ONLY with valid JSON, no markdown, no backticks, no explanations outside the JSON:
 {
-  "matchScore": número del 0 al 100 indicando qué tan bien encaja el perfil de Jaime con la oferta,
-  "matchingSkills": número de skills de Jaime que coinciden con los requisitos,
-  "keywordsIntegrated": número de keywords de la oferta que se han integrado en el CV,
-  "adaptedBio": "párrafo de perfil profesional adaptado específicamente para esta oferta (3-4 frases)",
-  "highlightedSkills": ["skills de Jaime ordenadas por relevancia para esta oferta — usa EXACTAMENTE los mismos nombres que aparecen en su lista de skills: HTML, CSS, JavaScript, PHP, Java, SQL, C#, .NET, Front End, Back End, Multiplataforma, Git, REST APIs, BBDD Relacionales"],
-  "keySkillsFromOffer": ["subset de highlightedSkills que la oferta requiere explícitamente — usa EXACTAMENTE los mismos nombres de la lista anterior, sin parafrasear"],
-  "adaptedBullets": ["bullet 1 reformulado", "bullet 2 reformulado", "bullet 3 reformulado"],
-  "jobTitle": "título del puesto detectado en la oferta",
-  "company": "nombre de la empresa si aparece, si no 'Empresa Tecnológica'",
-  "tip": "consejo específico de 2-3 frases sobre qué podría añadir o mejorar Jaime para esta oferta, y qué gaps hay entre su perfil y los requisitos",
-  "adaptedRole": "título de puesto más adecuado para presentarse a esta oferta específica",
-  "integratedKeywords": ["lista de keywords concretas de la oferta que se han integrado en el CV adaptado"]
+  "lang": "es" or "en" depending on the language of the job offer,
+  "matchScore": number from 0 to 100 indicating how well Jaime's profile fits the offer,
+  "matchingSkills": number of Jaime's skills that match the requirements,
+  "keywordsIntegrated": number of keywords from the offer integrated into the CV,
+  "adaptedBio": "professional profile paragraph adapted specifically for this offer (3-4 sentences, in the detected language)",
+  "highlightedSkills": ["Jaime's skills ordered by relevance for this offer — use EXACTLY the same names as in his skills list: HTML, CSS, JavaScript, PHP, Java, SQL, C#, .NET, Front End, Back End, Multiplataforma, Git, REST APIs, BBDD Relacionales"],
+  "keySkillsFromOffer": ["subset of highlightedSkills explicitly required by the offer — use EXACTLY the same names from the list above, no paraphrasing"],
+  "adaptedBullets": ["bullet 1 rewritten in present tense", "bullet 2", "bullet 3"],
+  "jobTitle": "job title detected in the offer",
+  "company": "company name if present, otherwise 'Tech Company'",
+  "tip": "specific advice of 2-3 sentences about what Jaime could add or improve for this offer, and what gaps exist between his profile and the requirements (in the detected language)",
+  "adaptedRole": "most suitable job title for Jaime to present himself for this specific offer (in the detected language)",
+  "integratedKeywords": ["list of specific keywords from the offer integrated into the adapted CV"]
 }`;
 
   const userMessage = currentMode === 'url'
@@ -150,6 +183,8 @@ Responde SOLO con JSON válido, sin markdown, sin backticks, sin explicaciones f
 function renderCV(data) {
   lastCVData = data;
 
+  const L = LABELS[data.lang === 'en' ? 'en' : 'es'];
+
   document.getElementById('score-match').textContent = (data.matchScore || 0) + '%';
 
   const matchingSkills = data.keySkillsFromOffer || [];
@@ -160,7 +195,6 @@ function renderCV(data) {
   document.getElementById('score-keywords').textContent = integratedKeywords.length || data.keywordsIntegrated || '—';
   document.getElementById('keywords-detail').textContent = integratedKeywords.join(' · ');
 
-  // Destacar skills que coinciden con la oferta
   const keySkillsSet = new Set(matchingSkills.map(s => s.toLowerCase()));
 
   const skillTags = (data.highlightedSkills || JAIME_DATA.skills).map(skill => {
@@ -171,7 +205,7 @@ function renderCV(data) {
   const bulletItems = (data.adaptedBullets || JAIME_DATA.experience[0].bullets)
     .map(b => `<li>${b}</li>`).join('');
 
-  const eduRows = JAIME_DATA.education.map(e => `
+  const eduRows = L.edu.map(e => `
     <div class="cv-edu-row">
       <div class="cv-edu-year">${e.year}</div>
       <div>
@@ -181,9 +215,9 @@ function renderCV(data) {
     </div>
   `).join('');
 
-  const langText = JAIME_DATA.languages.map(l => `${l.lang} (${l.level})`).join(' · ');
+  const langText = L.langItems.map(l => `${l.lang} (${l.level})`).join(' · ');
 
-  cvTextContent = `JAIME MARTÍNEZ LÓPEZ\n${data.adaptedRole || JAIME_DATA.role}\n${JAIME_DATA.email} · ${JAIME_DATA.phone} · ${JAIME_DATA.location}\n\nPERFIL PROFESIONAL\n${data.adaptedBio || JAIME_DATA.bio}\n\nEXPERIENCIA\nConsultor Junior — Desarrollo Web & Multiplataforma\nEnero 2023 — Actualidad\n${(data.adaptedBullets || []).map(b => '· ' + b).join('\n')}\n\nFORMACIÓN\n2021-2022 — Grado en Desarrollo de Aplicaciones Web — IMF Smart Education\n2019-2020 — Grado en Desarrollo de Aplicaciones Multiplataforma — IMF Smart Education\n\nIDIOMAS\n${langText}`;
+  cvTextContent = `JAIME MARTÍNEZ LÓPEZ\n${data.adaptedRole || JAIME_DATA.role}\n${JAIME_DATA.email} · ${JAIME_DATA.phone} · ${JAIME_DATA.location}\n\n${L.profile.toUpperCase()}\n${data.adaptedBio || JAIME_DATA.bio}\n\n${L.experience.toUpperCase()}\n${L.expRole} — ${L.expCompany}\n${(data.adaptedBullets || []).map(b => '· ' + b).join('\n')}\n\n${L.education.toUpperCase()}\n${L.edu.map(e => `${e.year} — ${e.title} — ${e.school}`).join('\n')}\n\n${L.languages.toUpperCase()}\n${langText}`;
 
   document.getElementById('cv-output').innerHTML = `
     <div class="cv-name">Jaime<br><em>Martínez</em> López</div>
@@ -194,22 +228,22 @@ function renderCV(data) {
       <div><span>📍</span>${JAIME_DATA.location}</div>
     </div>
 
-    <div class="cv-section-title">Perfil profesional</div>
+    <div class="cv-section-title">${L.profile}</div>
     <div class="cv-summary">${data.adaptedBio || JAIME_DATA.bio}</div>
 
-    <div class="cv-section-title">Habilidades técnicas</div>
+    <div class="cv-section-title">${L.skills}</div>
     <div class="cv-skill-grid">${skillTags}</div>
-    ${keySkillsSet.size > 0 ? `<div class="cv-skills-note" style="margin-top:10px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);">↳ Skills destacadas en naranja coinciden con los requisitos de la oferta</div>` : ''}
+    ${keySkillsSet.size > 0 ? `<div class="cv-skills-note" style="margin-top:10px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);">${L.skillsNote}</div>` : ''}
 
-    <div class="cv-section-title">Experiencia profesional</div>
-    <div class="cv-exp-role">Consultor Junior</div>
-    <div class="cv-exp-company">Desarrollo Web & Multiplataforma · Enero 2023 — Actualidad · 3 años, 4 meses</div>
+    <div class="cv-section-title">${L.experience}</div>
+    <div class="cv-exp-role">${L.expRole}</div>
+    <div class="cv-exp-company">${L.expCompany}</div>
     <ul class="cv-bullets">${bulletItems}</ul>
 
-    <div class="cv-section-title">Formación académica</div>
+    <div class="cv-section-title">${L.education}</div>
     ${eduRows}
 
-    <div class="cv-section-title">Idiomas</div>
+    <div class="cv-section-title">${L.languages}</div>
     <div style="font-size:14px;color:#9a9aa8;">${langText}</div>
   `;
 
@@ -254,6 +288,7 @@ async function imgToBase64(url) {
 async function printCV() {
   const photoBase64 = await imgToBase64('img/photo.png');
   const data = lastCVData || {};
+  const L = LABELS[data.lang === 'en' ? 'en' : 'es'];
 
   const role    = data.adaptedRole  || JAIME_DATA.role;
   const bio     = data.adaptedBio   || JAIME_DATA.bio;
@@ -265,13 +300,13 @@ async function printCV() {
   const skillsHtml  = skills.map(s =>
     `<div class="item"><span class="bullet">•</span>${s}</div>`).join('');
 
-  const langsHtml   = JAIME_DATA.languages.map(l =>
+  const langsHtml   = L.langItems.map(l =>
     `<div class="item"><span class="bullet">•</span>${l.lang} — ${l.level}</div>`).join('');
 
   const bulletsHtml = bullets.map(b =>
     `<div class="item"><span class="bullet">•</span>${b}</div>`).join('');
 
-  const eduHtml = JAIME_DATA.education.map(e => `
+  const eduHtml = L.edu.map(e => `
     <div class="edu-block">
       <div class="edu-title">${e.title}</div>
       <div class="edu-school">${e.school}</div>
@@ -451,15 +486,15 @@ async function printCV() {
 <div class="body">
   <div class="col-left">
     <div class="section">
-      <div class="sec-title">Habilidades relevantes</div>
+      <div class="sec-title">${L.skillsSec}</div>
       ${skillsHtml}
     </div>
     <div class="section">
-      <div class="sec-title">Lenguaje</div>
+      <div class="sec-title">${L.langSec}</div>
       ${langsHtml}
     </div>
     <div class="section">
-      <div class="sec-title">Contacto</div>
+      <div class="sec-title">${L.contactSec}</div>
       <div class="contact-item"><span class="contact-icon">✆</span>${JAIME_DATA.phone}</div>
       <div class="contact-item"><span class="contact-icon">✉</span>${JAIME_DATA.email}</div>
       <div class="contact-item"><span class="contact-icon">◎</span>${JAIME_DATA.location}</div>
@@ -468,13 +503,13 @@ async function printCV() {
 
   <div class="col-right">
     <div class="section">
-      <div class="sec-title">Experiencia de trabajo</div>
-      <div class="exp-role">${JAIME_DATA.experience[0].role}</div>
-      <div class="exp-period">${JAIME_DATA.experience[0].period} (${JAIME_DATA.experience[0].duration})</div>
+      <div class="sec-title">${L.expSec}</div>
+      <div class="exp-role">${L.expRole}</div>
+      <div class="exp-period">${data.lang === 'en' ? 'January 2023 — Present (3 years, 4 months)' : 'Enero 2023 — Actualidad (3 años, 4 meses)'}</div>
       ${bulletsHtml}
     </div>
     <div class="section">
-      <div class="sec-title">Formación</div>
+      <div class="sec-title">${L.eduSec}</div>
       ${eduHtml}
     </div>
   </div>
