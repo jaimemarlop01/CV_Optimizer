@@ -26,31 +26,23 @@ if (!$payload) {
     exit;
 }
 
-$systemText = $payload['system'] ?? '';
-$userText   = '';
-foreach (($payload['messages'] ?? []) as $msg) {
-    if ($msg['role'] === 'user') { $userText = $msg['content']; break; }
-}
-
-$groqPayload = [
-    'model'       => 'llama-3.3-70b-versatile',
-    'max_tokens'  => $payload['max_tokens'] ?? 1500,
-    'temperature' => 0.3,
-    'messages'    => [
-        ['role' => 'system', 'content' => $systemText],
-        ['role' => 'user',   'content' => $userText],
-    ],
+$anthropicPayload = [
+    'model'      => 'claude-sonnet-4-5',
+    'max_tokens' => $payload['max_tokens'] ?? 1500,
+    'system'     => $payload['system'] ?? '',
+    'messages'   => $payload['messages'] ?? [],
 ];
 
-$ch = curl_init('https://api.groq.com/openai/v1/chat/completions');
+$ch = curl_init('https://api.anthropic.com/v1/messages');
 curl_setopt_array($ch, [
     CURLOPT_POST           => true,
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_HTTPHEADER     => [
         'Content-Type: application/json',
-        'Authorization: Bearer ' . GROQ_API_KEY,
+        'x-api-key: ' . ANTHROPIC_API_KEY,
+        'anthropic-version: 2023-06-01',
     ],
-    CURLOPT_POSTFIELDS     => json_encode($groqPayload),
+    CURLOPT_POSTFIELDS     => json_encode($anthropicPayload),
     CURLOPT_TIMEOUT        => 60,
 ]);
 
@@ -73,10 +65,5 @@ if ($httpCode !== 200) {
     exit;
 }
 
-// Convierte respuesta Groq (formato OpenAI) al formato que espera el frontend
-$groqData = json_decode($response, true);
-$text = $groqData['choices'][0]['message']['content'] ?? '';
-
-echo json_encode([
-    'content' => [['type' => 'text', 'text' => $text]]
-]);
+// La respuesta de Anthropic ya tiene el formato que espera el frontend
+echo $response;
